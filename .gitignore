@@ -3,9 +3,13 @@
 /db/*.sqlite3
 
 .DS_Store
+Thumbs.db
 .vscode/
+.idea/
+
 /log/
 /tmp/
+/coverage/
 
 /.bundle/
 /vendor/bundle/

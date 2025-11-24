@@ -1,5 +1,6 @@
 require 'tty-prompt'
 require 'pastel'
+require 'terminal-table'
 
 class CLI
     def initialize
@@ -95,9 +96,45 @@ class CLI
     end
 
     def list_transactions
-        puts "\nFuncionalidade 'Ver Extrato' em construção..."
-        sleep 1
+
+    transactions = Transaction.includes(:category).order(date: :desc)
+
+    if transactions.empty?
+      puts @pastel.yellow("\nNenhuma transação encontrada.")
+      return
     end
+
+    rows = transactions.map do |t|
+      [
+        t.id,
+        t.date.strftime("%d/%m/%Y"),
+        t.description,
+        t.category.name,
+        format_money(t)
+      ]
+    end
+
+    table = Terminal::Table.new do |t|
+      t.title = "Extrato Financeiro"
+      t.headings = ['ID', 'Data', 'Descrição', 'Categoria', 'Valor']
+      t.rows = rows
+      t.style = { border_x: "-", border_i: "+" }
+    end
+
+    puts "\n"
+    puts table
+    puts "\n"
+  end
+
+  def format_money(transaction)
+    value = "R$ #{'%.2f' % transaction.amount}"
+    
+    if transaction.category.kind == 'income'
+      @pastel.green(value)
+    else
+      @pastel.red("- #{value}")
+    end
+  end
 
     def summary
         puts "\nFuncionalidade 'Resumo' em construção..."
