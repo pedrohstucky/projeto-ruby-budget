@@ -22,7 +22,7 @@ Este projeto demonstra o uso de **ActiveRecord** fora do Rails, migrações de b
 
 1. **Clone o repositório:**
    ```bash
-   git clone [https://github.com/SEU_USUARIO/ruby_budget.git](https://github.com/SEU_USUARIO/ruby_budget.git)
+   git clone git@github.com:pedrohstucky/projeto-ruby-budget.git
    cd ruby_budget
 
 2. Instale as dependências:
