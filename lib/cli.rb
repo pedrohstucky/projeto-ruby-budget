@@ -31,8 +31,67 @@ class CLI
     private
 
     def new_transaction
-        puts "\nFuncionalidade 'Nova Transação' em construção..."
-        sleep 1
+        puts @pastel.yellow("\n--- Nova Transação ---")
+
+        description = @prompt.ask("Descrição (ex: Almoço Salário): ", required: true)
+
+        amount = @prompt.ask("Valor (R$): ", convert: :float) do |q|
+            q.required true
+            q.validate { |input| input.to_f > 0 }
+            q.messages[:valid?] = "O valor deve ser maior que zero!"
+        end
+
+        date = @prompt.ask("Data (DD-MMM-YYYY): ", default: Date.today.to_s)
+
+        category = select_category_flow
+
+        transaction = Transaction.new(
+            description: description,
+            amount: amount,
+            date: date,
+            category: category
+        )
+
+        if transaction.save
+            puts @pastel.green("\nTransação registrada com sucesso!")
+            puts "      #{transaction.description} | R$ #{transaction.amount} | #{category.name}"
+        else
+            puts @pastel.red("\nErro ao salvar: #{transaction.errors.full_messages.join(', ')}")
+        end
+    end
+
+    def select_category_flow
+        categories = Category.all
+
+        choices = categories.map { |c| ["#{c.name} (#{c.kind})", c] }.to_h
+
+        choices["Criar Nova Categoria"] = :new_category
+
+        selection = @prompt.select("Selecione a Categoria: ", choices, per_page: 10)
+
+        if selection == :new_category
+            create_category_flow
+        else
+            selection
+        end
+    end
+
+    def create_category_flow
+        puts @pastel.yellow("\n--- Nova Categoria ---")
+
+        name = @prompt.ask("Nome da Categoria: ", required: true)
+
+        kind = @prompt.select("Tipo: ", { "Despesa (Expense)" => "expense", "Receita (Income)" => "income" })
+
+        category = Category.create(name: name, kind: kind)
+
+        if category.persisted?
+            puts @pastel.green("Categoria '#{category.name}' criada!")
+            category
+        else
+            puts @pastel.red("Erro ao criar categoria.")
+            create_category_flow
+        end
     end
 
     def list_transactions
