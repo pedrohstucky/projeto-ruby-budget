@@ -97,47 +97,87 @@ class CLI
 
     def list_transactions
 
-    transactions = Transaction.includes(:category).order(date: :desc)
+        transactions = Transaction.includes(:category).order(date: :desc)
 
-    if transactions.empty?
-      puts @pastel.yellow("\nNenhuma transação encontrada.")
-      return
+        if transactions.empty?
+            puts @pastel.yellow("\nNenhuma transação encontrada.")
+            return
+        end
+
+        rows = transactions.map do |t|
+            [
+                t.id,
+                t.date.strftime("%d/%m/%Y"),
+                t.description,
+                t.category.name,
+                format_money(t)
+            ]
+        end
+
+        table = Terminal::Table.new do |t|
+            t.title = "Extrato Financeiro"
+            t.headings = ['ID', 'Data', 'Descrição', 'Categoria', 'Valor']
+            t.rows = rows
+            t.style = { border_x: "-", border_i: "+" }
+        end
+
+        puts "\n"
+        puts table
+        puts "\n"
     end
 
-    rows = transactions.map do |t|
-      [
-        t.id,
-        t.date.strftime("%d/%m/%Y"),
-        t.description,
-        t.category.name,
-        format_money(t)
-      ]
-    end
-
-    table = Terminal::Table.new do |t|
-      t.title = "Extrato Financeiro"
-      t.headings = ['ID', 'Data', 'Descrição', 'Categoria', 'Valor']
-      t.rows = rows
-      t.style = { border_x: "-", border_i: "+" }
-    end
-
-    puts "\n"
-    puts table
-    puts "\n"
-  end
-
-  def format_money(transaction)
-    value = "R$ #{'%.2f' % transaction.amount}"
+    def format_money(transaction)
+        value = "R$ #{'%.2f' % transaction.amount}"
     
-    if transaction.category.kind == 'income'
-      @pastel.green(value)
-    else
-      @pastel.red("- #{value}")
+        if transaction.category.kind == 'income'
+            @pastel.green(value)
+        else
+            @pastel.red("- #{value}")
+        end
     end
-  end
 
     def summary
-        puts "\nFuncionalidade 'Resumo' em construção..."
-        sleep 1
+        puts @pastel.yellow("\n📊 Resumo Financeiro\n")
+
+        total_income = Transaction.joins(:category).where(categories: { kind: 'income' }).sum(:amount)
+        total_expense = Transaction.joins(:category).where(categories: { kind: 'expense' }).sum(:amount)
+        balance = total_income - total_expense
+
+        puts "Receitas: " + @pastel.green("R$ #{'%.2f' % total_income}")
+        puts "Despesas: " + @pastel.red("R$ #{'%.2f' % total_expense}")
+        puts "-" * 30
+    
+        label_saldo = "Saldo Final: "
+            if balance >= 0
+                puts label_saldo + @pastel.green.bold("R$ #{'%.2f' % balance}")
+            else
+                puts label_saldo + @pastel.red.bold("R$ #{'%.2f' % balance}")
+            end
+
+        puts "\n--- Detalhe por Categoria ---\n"
+    
+        category_totals = Category.joins(:transactions).group(:name, :kind).sum(:amount)
+
+        if category_totals.empty?
+             puts "Sem dados para exibir."
+        else
+            table = Terminal::Table.new do |t|
+                t.headings = ['Categoria', 'Tipo', 'Total Acumulado']
+                t.style = { border_x: "-", border_i: "+" }
+        
+            category_totals.each do |(name, kind), total|
+            formatted_total = if kind == 'income'
+                                @pastel.green("R$ #{'%.2f' % total}")
+                              else
+                                @pastel.red("R$ #{'%.2f' % total}")
+                              end
+          
+            kind_label = kind == 'income' ? 'Receita' : 'Despesa'
+          
+            t.add_row [name, kind_label, formatted_total]
+            end
+        end
+            puts table
+        end
     end
 end

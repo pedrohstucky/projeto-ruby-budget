@@ -6,7 +6,5 @@ db_config = YAML.load_file(File.join(File.dirname(__FILE__), 'database.yml'))
 
 ActiveRecord::Base.establish_connection(db_config)
 
-#ActiveRecord::Base.logger = Logger.new(STDOUT)
-
 model_path = File.join(File.dirname(__FILE__), '../lib/models/*.rb')
 Dir[model_path].each { |file| require file }
